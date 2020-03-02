@@ -1,49 +1,73 @@
-# LeGO-LOAM_NOTED
-LeGO-LOAM代码注释与学习
+# LeGO-LOAM
 
-### 博客链接
-目前进行的一些更新都会在CSDN上进行，全部更新完会再更新个人博客上的内容。
-CSDN博客的内容链接：      
-1.[地图优化代码理解](https://blog.csdn.net/wykxwyc/article/details/98316127)    
-2.[图像重投影代码理解](https://blog.csdn.net/wykxwyc/article/details/98317100)    
-3.[特征关联代码理解](https://blog.csdn.net/wykxwyc/article/details/98317544)    
-4.[LeGO-LOAM代码中数学公式的解析](https://blog.csdn.net/wykxwyc/article/details/98318294)     
-5.[LeGO-LOAM论文翻译(内容精简)](https://blog.csdn.net/wykxwyc/article/details/89605721)      
-6.[关于位姿变换的一道题](https://blog.csdn.net/wykxwyc/article/details/101712524)     
+This repository contains code for a lightweight and ground optimized lidar odometry and mapping (LeGO-LOAM) system for ROS compatible UGVs. The system takes in point cloud  from a Velodyne VLP-16 Lidar (palced horizontal) and optional IMU data as inputs. It outputs 6D pose estimation in real-time. A demonstration of the system can be found here -> https://www.youtube.com/watch?v=O3tz_ftHV48
 
-个人博客上的目前还没有进行更新:    
-1.[地图优化代码理解](https://wykxwyc.github.io/2019/01/21/LeGO-LOAM-code-review-mapOptmization/)   
-2.[图像重投影代码理解](https://wykxwyc.github.io/2019/01/23/LeGO-LOAM-code-review-imageProjection/)   
-3.[特征关联代码理解](https://wykxwyc.github.io/2019/01/24/LeGO-LOAM-code-review-featureAssociation/)    
-4.[LeGO-LOAM代码中数学公式的解析](https://wykxwyc.github.io/2019/08/01/The-Math-Formula-in-LeGO-LOAM/)       
-5.[LeGO-LOAM论文翻译(内容精简)](https://wykxwyc.github.io/2019/04/26/LeGO-LOAM-Paper-Traslation-and-Summary/)   
+https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/src/LeGO-LOAM/launch/demo.gif
 
-### 实验与说明
-The cordinate of velodyne LiDAR:    
+## Dependency
 
-<img src="https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/velodyne_LiDAR_cordinate.jpg" width = 80% height = 80%/>   
+- [ROS](http://wiki.ros.org/ROS/Installation) (tested with indigo and kinetic)
+- [gtsam](https://bitbucket.org/gtborg/gtsam) (Georgia Tech Smoothing and Mapping library)
 
+## Compile
 
-The cordinate of frame-of-integrated_to_init:    
+You can use the following commands to download and compile the package.
 
-<img src="https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/frame-of-integrated_to_init.jpg" width = 80% height = 80%/>   
+```
+cd ~/catkin_ws/src
+git clone https://github.com/RobustFieldAutonomyLab/LeGO-LOAM.git
+cd ..
+catkin_make -j1
+```
+When you compile the code for the first time, you need to add "-j1" behind "catkin_make" for generating some message types. "-j1" is not needed for future compiling.
 
+## The system
 
-Test without IMU:    
+LeGO-LOAM is speficifally optimized for a horizontally placed VLP-16 on a ground vehicle. It assumes there is always a ground plane in the scan. The UGV we are using is Clearpath Jackal. It has a built-in IMU. 
+![Jackal](/LeGO-LOAM/launch/jackal-label.jpg)
 
-<img src="https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/lego-loam-experiment.jpg" width = 80% height = 80%/>   
-<img src="https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/lego-loam-experiment-downward.jpg" width = 80% height = 80%/>  
+The package performs segmentation before feature extraction.
+![Segmentaion](/LeGO-LOAM/launch/seg-total.jpg)
 
+Lidar odometry performs two-step Levenberg Marquardt optimization to get 6D transformation.
+![Odometry](/LeGO-LOAM/launch/odometry.jpg)
 
+## New sensor
 
-ROS nodes in LeGO-LOAM:    
+The key thing to adapt the code to a new sensor is making sure the point cloud can be properly projected to an range image and ground can be correctly detected. For example, VLP-16 has a angular resolution of 0.2&deg; and 2&deg; along two directions. It has 16 beams. The angle of the bottom beam is -15&deg;. Thus, the parameters in "utility.h" are listed as below. When you implement new sensor, make sure that the ground_cloud has enough points for matching. Before you post any issues, please read this.
 
-<img src="https://github.com/wykxwyc/LeGO-LOAM_NOTED/blob/master/lego-loam-nodes.png" width = 80% height = 80%/>
+```
+extern const int N_SCAN = 16;
+extern const int Horizon_SCAN = 1800;
+extern const float ang_res_x = 0.2;
+extern const float ang_res_y = 2.0;
+extern const float ang_bottom = 15.0;
+extern const int groundScanInd = 7;
+```
+## Run the package
 
+1. Run the launch file:
+```
+roslaunch lego_loam run.launch
+```
+Notes: The parameter "/use_sim_time" is set to "true" for simulation, "false" to real robot usage.
 
-### About update
-2018-12-28 Forked from LeGO-LOAM: https://github.com/RobustFieldAutonomyLab/LeGO-LOAM       
-2019-10-08 Update the comment and the blog      
+2. Play existing bag files:
+```
+rosbag play *.bag --clock --topic /velodyne_points /imu/data
+```
+Notes: Though /imu/data is optinal, it can improve estimation accuracy greatly if provided. Some sample bags can be downloaded from [here](https://github.com/RobustFieldAutonomyLab/jackal_dataset_20170608) If your IMU frame doesn't align with Velodyne frame, use of IMU data will cause significant drift.
 
+## Cite *LeGO-LOAM*
 
-
+Thank you for citing our *LeGO-LOAM* paper if you use any of this code: 
+```
+@inproceedings{legoloam2018,
+  title={LeGO-LOAM: Lightweight and Ground-Optimized Lidar Odometry and Mapping on Variable Terrain},
+  author={Tixiao Shan and Brendan Englot},
+  booktitle={IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages={4758-4765},
+  year={2018},
+  organization={IEEE}
+}
+```

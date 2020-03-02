@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(GTSAM REQUIRED QUIET)
 find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
+find_package(Eigen3 REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -36,6 +37,7 @@ include_directories(
 	${PCL_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
 	${GTSAM_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 link_directories(
@@ -58,3 +60,6 @@ target_link_libraries(mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Open
 
 add_executable(transformFusion src/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+
+add_executable(savePoseToFile src/savePoseToFile.cpp)
+target_link_libraries(savePoseToFile ${catkin_LIBRARIES})
